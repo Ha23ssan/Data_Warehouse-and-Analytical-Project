@@ -1,1 +1,17 @@
+IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name='Datawarehouse_Sales')
+begin 
+    create database Datawarehouse_Sales
+    end ;
+    GO
+use Datawarehouse_Sales;
+go
 
+create schema bronze ;
+go 
+
+create schema silver ;
+go 
+
+
+create schema gold ;
+go 
