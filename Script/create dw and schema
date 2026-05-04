@@ -1,3 +1,8 @@
+/*
+script : create datawarehouse and schema 
+--------------------------------------------------------------------------
+*/
+
 IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name='Datawarehouse_Sales')
 begin 
     create database Datawarehouse_Sales
