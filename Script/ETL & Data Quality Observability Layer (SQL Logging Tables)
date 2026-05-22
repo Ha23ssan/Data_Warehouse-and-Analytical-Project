@@ -1,1 +1,18 @@
+CREATE TABLE ETL_LOG
+(
+	ID  INT IDENTITY(1,1) PRIMARY KEY ,
+	layer_name varchar(20) ,
+	Start_time datetime ,
+	End_time   datetime ,
+	execution_duration varchar(20) ,
+	Rows_loaded INT ,
+	Status varchar(50) 
+)
 
+
+CREATE TABLE dq_log (
+    check_name VARCHAR(50),
+    status VARCHAR(20),
+    failed_rows INT,
+    run_time DATETIME
+);
