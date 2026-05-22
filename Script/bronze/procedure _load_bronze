@@ -1,9 +1,9 @@
 ===================================================================
 Script : create  a procedure to load data into  the bronze layer 
 ===================================================================
-create or alter procedure bronze.load_bronze AS 
+create or alter procedure bronze.Full_Load AS 
 BEGIN
- declare @start_time datetime ,@end_time datetime,@batch_start_time datetime,@batch_end_time datetime;
+ declare @start_time datetime ,@end_time datetime,@batch_start_time datetime,@batch_end_time datetime ,@Rows_loaded INT = 0;
 
   Begin try 
 
@@ -17,92 +17,124 @@ BEGIN
    print             'loading CRM Tables ';
    print '==================================================';
 
+
+
+     -- Full load : crm_cust_info
+
      set @start_time = GETDATE();
      truncate table bronze.crm_cust_info;
      bulk insert bronze.crm_cust_info 
-     from 'C:\Users\DELL\Documents\Dataset\CRM\cust_info.csv'
+     from 'C:\database\CRM\cust_info.csv'
       with (
       FIRSTROW = 2,
       FIELDTERMINATOR =',',
       TABLOCK 
       )
+      set @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
       set @end_time=GETDATE();
-      print '>> loading duration(bronze.crm_cust_info) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'seconds';
+      print '>> loading duration(bronze.crm_cust_info) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'  seconds';
+
+
+     -- Full load : crm_prd_info
 
      set @start_time = GETDATE();
      truncate table bronze.crm_prd_info;
      bulk insert bronze.crm_prd_info 
-     from 'C:\Users\DELL\Documents\Dataset\CRM\prd_info.csv'
+     from 'C:\database\CRM\prd_info.csv'
       with (
       FIRSTROW = 2,
       FIELDTERMINATOR =',',
       TABLOCK 
       )
+      set @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
       set @end_time=GETDATE();
-      print '>> loading duration(bronze.crm_prd_info) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'seconds';
+      print '>> loading duration(bronze.crm_prd_info) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'  seconds';
+
+
+      -- Full load : crm_sales_details
 
      set @start_time = GETDATE();
      truncate table bronze.crm_sales_details;
      bulk insert bronze.crm_sales_details 
-     from 'C:\Users\DELL\Documents\Dataset\CRM\sales_details.csv'
+     from 'C:\database\CRM\sales_details.csv'
       with (
       FIRSTROW = 2,
       FIELDTERMINATOR =',',
       TABLOCK 
       )
+      set @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
       set @end_time=GETDATE();
-      print '>> loading duration(bronze.crm_sales_details) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'seconds';
+      print '>> loading duration(bronze.crm_sales_details) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'  seconds';
 
       print '==================================================';
       print             'loading ERP Tables ';
       print '==================================================';
 
+
+     -- Full load : erp_CUST_AZ12
+
      set @start_time = GETDATE();
      truncate table bronze.erp_CUST_AZ12;
      bulk insert bronze.erp_CUST_AZ12 
-     from 'C:\Users\DELL\Documents\Dataset\ERP\CUST_AZ12.csv'
+     from 'C:\database\ERP\CUST_AZ12.csv'
       with (
       FIRSTROW = 2,
       FIELDTERMINATOR =',',
       TABLOCK 
       )
+      set @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
       set @end_time=GETDATE();
-      print '>> loading duration(bronze.erp_CUST_AZ12) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'seconds';
+      print '>> loading duration(bronze.erp_CUST_AZ12) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'  seconds';
       
-      set @start_time = GETDATE();
+
+      -- Full load : erp_LOC_A101
+
+     set @start_time = GETDATE();
      truncate table bronze.erp_LOC_A101;
      bulk insert bronze.erp_LOC_A101 
-     from 'C:\Users\DELL\Documents\Dataset\ERP\LOC_A101.csv'
+     from 'C:\database\ERP\LOC_A101.csv'
       with (
       FIRSTROW = 2,
       FIELDTERMINATOR =',',
       TABLOCK 
       )
+      set @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
       set @end_time=GETDATE();
-      print '>> loading duration(bronze.erp_LOC_A101) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'seconds';
+      print '>> loading duration(bronze.erp_LOC_A101) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'  seconds';
       
-      set @start_time = GETDATE();
+
+     -- Full load : erp_PX_CAT_G1V2
+
+     set @start_time = GETDATE();
      truncate table bronze.erp_PX_CAT_G1V2;
      bulk insert bronze.erp_PX_CAT_G1V2 
-     from 'C:\Users\DELL\Documents\Dataset\ERP\PX_CAT_G1V2.csv'
+     from 'C:\database\ERP\PX_CAT_G1V2.csv'
       with (
       FIRSTROW = 2,
       FIELDTERMINATOR =',',
       TABLOCK 
       )
+      set @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
       set @end_time=GETDATE();
-      print '>> loading duration(bronze.erp_PX_CAT_G1V2) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'seconds';
+      print '>> loading duration(bronze.erp_PX_CAT_G1V2) :' + cast(datediff(second,@start_time,@end_time) as nvarchar ) +'  seconds';
 
       set @batch_end_time= GETDATE();
-      print '>>>  Total loading duration '+ cast(datediff(second,@batch_start_time,@batch_end_time )as nvarchar)+'seconds';
+      print '>>>  Total loading duration '+ cast(datediff(second,@batch_start_time,@batch_end_time )as nvarchar)+'  seconds';
+
+      INSERT INTO ETL_LOG(layer_name,Start_time,End_time,execution_duration , Rows_loaded , Status)
+        VALUES('bronze',@batch_start_time,@batch_end_time,cast(datediff(second,@batch_start_time,@batch_end_time )as varchar),@Rows_loaded,'SUCCESS')
   end try 
 
   BEGIN CATCH 
    PRINT '============================================'
    PRINT 'ERROR OCCURED DURING LOADING BRONZE LAYER'
    PRINT 'Error Message' + ERROR_MESSAGE();
-   PRINT 'Error Message' + CAST (ERROR_NUMBER() AS NVARCHAR);
-   PRINT 'Error Message' + CAST (ERROR_STATE() AS NVARCHAR);
+   PRINT 'Error Number' + CAST (ERROR_NUMBER() AS NVARCHAR);
+   PRINT 'Error State' + CAST (ERROR_STATE() AS NVARCHAR);
    PRINT '=========================================='
+
+   INSERT INTO ETL_LOG(layer_name,Start_time,End_time,execution_duration , Rows_loaded , Status)
+      VALUES('bronze',@batch_start_time,@batch_end_time,cast(datediff(second,@batch_start_time,@batch_end_time )as varchar),@Rows_loaded,'FAILED')
+
   END CATCH 
 end
