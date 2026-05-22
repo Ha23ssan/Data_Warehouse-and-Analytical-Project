@@ -1,1 +1,235 @@
+==================================================================================
+Script :  stored procedure to perform the incremental data load into the gold layer 
+==================================================================================
+
+
+
+-- INCREMENTAL LOAD : gold layer
+
+CREATE OR ALTER  PROCEDURE gold.Incremental_load AS 
+BEGIN
+ DECLARE  @batch_start_time DATETIME , @batch_end_time DATETIME , @Rows_loaded INT = 0  ;
+
+
+BEGIN TRY
+ SET @batch_start_time = GETDATE() ;
+
+-- Incremental Load : Dim_Products 
+
+PRINT '================================'
+PRINT ' Incremental Load : Dim_Products'
+PRINT '================================'
+
+UPDATE gold.Dim_Products
+SET End_date = DATEADD(DAY,-1,LS.prd_start_dt),
+    Is_Current = 0
+FROM gold.Dim_Products  AS DP
+JOIN 
+    ( SELECT * FROM silver.crm_prd_info
+      WHERE prd_end_dt IS NULL ) AS LS
+      ON DP.Product_Number = LS.prd_key
+WHERE DP.End_date IS NULL 
+AND ISNULL(DP.Cost,0) != ISNULL(LS.prd_cost,0)
+
+;WITH Current_Products_CTE AS (
+ 
+  SELECT * FROM silver.crm_prd_info
+           WHERE prd_end_dt IS NULL )
+
+
+INSERT INTO gold.Dim_Products
+(
+    Product_ID ,
+    Product_Number ,
+    Product_Name ,
+    Product_Line ,
+    Category_ID ,
+    Category ,
+    Sub_Category ,
+    Maintenance ,
+    Cost ,
+    Start_date ,
+    End_date ,
+    Is_Current 
+
+)
+
+
+   SELECT 
+
+        CPC.prd_id AS Product_ID ,
+        CPC.prd_key AS Product_Number ,
+        CPC.prd_nm AS Product_Name ,
+        CPC.prd_line AS Product_Line ,
+        CPC.cat_id AS Category_ID ,
+        CG.cat AS Category ,
+        CG.subcat AS Sub_Category ,
+        CG.maintenance AS Maintenance ,
+        CPC.prd_cost AS Cost ,
+        CPC.prd_start_dt AS Start_date ,
+        CPC.prd_end_dt AS End_date ,
+
+        1 AS Is_Current
+
+
+     FROM 
+         Current_Products_CTE AS CPC
+     LEFT JOIN  silver.erp_PX_CAT_G1V2  AS CG
+         ON CPC.cat_id = CG.id
+     LEFT JOIN gold.Dim_Products AS DP
+         ON DP.Product_Number = CPC.prd_key
+         AND DP.End_date IS NULL 
+    WHERE 
+      DP.Product_Number IS NULL 
+    OR 
+     ISNULL(DP.Cost,0) != ISNULL(CPC.prd_cost,0)
+
+ SET @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
+
+    
+-- Incremental Load : Dim_Customers
+
+PRINT '================================'
+PRINT ' Incremental Load : Dim_Customers'
+PRINT '================================'
+
+INSERT INTO gold.Dim_Customers 
+(
+    Customer_ID ,
+    Customer_Number ,
+    Customer_Name ,
+    Marital_Status ,
+    Gender ,
+    Birth_Date ,
+    Country ,
+    Create_Date
+)
+
+   SELECT 
+
+        CI.cst_id AS  Customer_ID ,
+        CI.cst_key AS Customer_Number ,
+        CI.cst_Name AS Customer_Name ,
+        CI.cst_marital_status AS Marital_Status ,
+
+        CASE 
+            WHEN CI.cst_gndr = 'N/A' THEN CA.GEN 
+            ELSE CI.cst_gndr
+        END AS Gender ,
+
+        CA.BDATE AS Birth_Date ,
+
+        LA.CNTRY AS Country ,
+        CI.cst_create_date AS Create_Date 
+
+     FROM silver.crm_cust_info  AS CI
+     LEFT JOIN silver.erp_CUST_AZ12 AS CA
+          ON CI.cst_key = CA.CID 
+     LEFT JOIN silver.erp_LOC_A101 LA 
+          ON CI.cst_key = LA.CID 
+     LEFT JOIN gold.Dim_Customers DC
+         ON DC.Customer_ID = CI.cst_id
+
+     WHERE DC.Customer_ID IS NULL 
+
+  SET @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
+     
+-- Incremental Load : Fact_Sales 
+
+PRINT '================================'
+PRINT ' Incremental Load : Fact_Sales '
+PRINT '================================'
+
+
+
+INSERT INTO gold.Fact_Sales 
+(
+    Order_Number ,
+    Product_Key ,
+    Customer_Key ,
+    Order_Date ,
+    Order_Date_Key ,
+    Ship_Date ,
+    Ship_Date_Key ,
+    Due_Date ,
+    Due_Date_Key ,
+    Quantity ,
+    Price ,
+    Revenue ,
+    Profit 
+)
+
+SELECT 
+
+    SD.sls_ord_num AS Order_Number ,
+    DP.Product_Key AS Product_Key ,
+    DC.Customer_Key AS Customer_Key ,
+    SD.sls_order_dt AS Order_Date ,
+
+    CONVERT(INT, CONVERT(VARCHAR(8), SD.sls_order_dt, 112)) AS Order_Date_Key,
+
+    SD.sls_ship_dt AS Ship_Date , 
+
+    
+
+    CONVERT(INT, CONVERT(VARCHAR(8), SD.sls_ship_dt, 112)) Ship_Date_Key ,
+
+    SD.sls_due_dt AS Due_Date ,
+
+
+    
+
+    CONVERT(INT, CONVERT(VARCHAR(8), SD.sls_due_dt, 112)) Due_Date_Key ,
+
+
+    SD.sls_quantity AS Quantity , 
+    SD.sls_price AS Price ,
+    SD.sls_sales AS Revenue , 
+
+    SD.sls_sales - (SD.sls_quantity * COALESCE(DP.Cost,0)) AS Profit 
+
+FROM silver.crm_sales_details AS SD 
+LEFT JOIN gold.Dim_Products AS DP 
+   ON SD.sls_prd_key = DP.Product_Number 
+   AND SD.sls_order_dt >= DP.Start_date
+   AND (
+          SD.sls_order_dt <= DP.End_date
+          OR 
+          DP.End_date IS NULL ) 
+LEFT JOIN gold.Dim_Customers AS DC 
+   ON SD.sls_cust_id = DC.Customer_ID 
+WHERE NOT EXISTS
+(
+   SELECT 1
+   FROM gold.Fact_Sales FS
+   WHERE FS.Order_Number = SD.sls_ord_num
+   AND FS.Product_Key = DP.Product_Key
+   AND FS.Customer_Key = DC.Customer_Key
+)
+
+
+
+ SET @Rows_loaded = @Rows_loaded + @@ROWCOUNT ;
+ SET @batch_end_time = GETDATE() ;
+
+ INSERT INTO ETL_LOG(layer_name,Start_time,End_time,execution_duration , Rows_loaded , Status)
+        VALUES('gold_New',@batch_start_time,@batch_end_time,cast(datediff(second,@batch_start_time,@batch_end_time )as varchar),@Rows_loaded,'SUCCESS')
+
+END TRY 
+
+BEGIN CATCH 
+   PRINT '============================================'
+   PRINT 'ERROR OCCURED DURING LOADING GOLD LAYER'
+   PRINT 'Error Message' + ERROR_MESSAGE();
+   PRINT 'Error Number' + CAST (ERROR_NUMBER() AS NVARCHAR);
+   PRINT 'Error State' + CAST (ERROR_STATE() AS NVARCHAR);
+   PRINT '=========================================='
+
+   INSERT INTO ETL_LOG(layer_name,Start_time,End_time,execution_duration , Rows_loaded , Status)
+      VALUES('gold',@batch_start_time,@batch_end_time,cast(datediff(second,@batch_start_time,@batch_end_time )as varchar),@Rows_loaded,'FAILED')
+
+  END CATCH 
+
+END 
+
 
