@@ -1,1 +1,84 @@
+---------------------------------------------------------------------
+Script : Create DDL For gold layer
+---------------------------------------------------------------------
+
+
+CREATE TABLE gold.Dim_Products
+(
+	Product_Key INT IDENTITY(1,1) PRIMARY KEY ,
+	Product_ID INT ,
+	Product_Number NVARCHAR(50) ,
+	Product_Name NVARCHAR(50) ,
+	Product_Line NVARCHAR(50),
+	Category_ID NVARCHAR(50) ,
+	Category NVARCHAR(50) ,
+	Sub_Category NVARCHAR(50) ,
+	Maintenance NVARCHAR(50) ,
+	Cost DECIMAL(8,2) ,
+	Start_date DATE ,
+	End_date DATE ,
+	Is_Current BIT
+
+)
+GO 
+
+
+CREATE TABLE gold.Dim_Customers
+(
+	Customer_Key INT IDENTITY(1,1) PRIMARY KEY ,
+	Customer_ID INT ,
+	Customer_Number NVARCHAR(50) ,
+	Customer_Name NVARCHAR(50) ,
+	Marital_Status NVARCHAR(50) ,
+	Gender NVARCHAR(50) ,
+	Birth_Date DATE ,
+	Country NVARCHAR(50) ,
+	Create_Date Date 
+
+)
+
+CREATE TABLE gold.Dim_DATE 
+(
+	Date_Key INT PRIMARY KEY ,
+	Full_Date DATE ,
+	Day_Number CHAR(2) ,
+	Day_Name NVARCHAR(20),
+	Month_Name NVARCHAR(20),
+	Quarter_Number NVARCHAR(20),
+	Year_Number INT
+
+)
+
+
+CREATE TABLE gold.Fact_Sales
+(
+	Sales_Key INT IDENTITY(1,1) PRIMARY KEY ,
+	Order_Number NVARCHAR(50) ,
+	Product_Key INT ,
+	Customer_Key INT ,
+	Order_Date DATE ,
+	Order_Date_Key INT ,
+	Ship_Date DATE ,
+	Ship_Date_Key INT ,
+	Due_Date DATE ,
+	Due_Date_Key INT ,
+	Quantity INT ,
+	Price DECIMAL(8,2) ,
+	Revenue DECIMAL(10,2) ,
+	Profit DECIMAL(10,2) ,
+
+	CONSTRAINT fk_Fact_Customers FOREIGN KEY (Customer_Key) REFERENCES gold.Dim_Customers(Customer_Key) ,
+
+	CONSTRAINT fk_Fact_Products FOREIGN KEY (Product_Key) REFERENCES gold.Dim_Products(Product_Key) , 
+
+	CONSTRAINT fk_Fact_Order_Date FOREIGN KEY (Order_Date_Key) REFERENCES gold.Dim_DATE(Date_Key) ,
+
+	CONSTRAINT fk_Fact_Ship_Date FOREIGN KEY (Ship_Date_Key) REFERENCES gold.Dim_DATE(Date_Key) ,
+
+	CONSTRAINT fk_Fact_Due_Date FOREIGN KEY (Due_Date_Key) REFERENCES gold.Dim_DATE(Date_Key) 
+
+)
+
+
+
 
