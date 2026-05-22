@@ -1,1 +1,21 @@
 
+CREATE NONCLUSTERED INDEX IX_Fact_Sales_Incremental
+ON gold.Fact_Sales
+(
+    Order_Number,
+    Product_Key,
+    Customer_Key
+);
+
+CREATE NONCLUSTERED INDEX IX_Dim_Products_SCD2
+ON gold.Dim_Products
+(
+    Product_Number,
+    Start_date,
+    End_date
+)
+INCLUDE (Product_Key, Cost);
+
+CREATE NONCLUSTERED INDEX IX_Dim_Customers_BK
+ON gold.Dim_Customers(Customer_ID)
+INCLUDE (Customer_Key);
