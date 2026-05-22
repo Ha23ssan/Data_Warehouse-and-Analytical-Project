@@ -1,1 +1,199 @@
+===================================================================
+Script :  stored procedure to perform the initial data load into the gold layer 
+===================================================================
+
+
+-- Initial Load : gold.Dim_Custtomers 
+
+INSERT INTO gold.Dim_Customers 
+(
+    Customer_ID ,
+    Customer_Number ,
+    Customer_Name ,
+    Marital_Status ,
+    Gender ,
+    Birth_Date ,
+    Country ,
+    Create_Date
+)
+
+   SELECT 
+
+        CI.cst_id AS  Customer_ID ,
+        CI.cst_key AS Customer_Number ,
+        CI.cst_Name AS Customer_Name ,
+        CI.cst_marital_status AS Marital_Status ,
+
+        CASE 
+            WHEN CI.cst_gndr = 'N/A' THEN CA.GEN 
+            ELSE CI.cst_gndr
+        END AS Gender ,
+
+        CA.BDATE AS Birth_Date ,
+
+        LA.CNTRY AS Country ,
+        CI.cst_create_date AS Create_Date 
+
+     FROM silver.crm_cust_info  AS CI
+     LEFT JOIN silver.erp_CUST_AZ12 AS CA
+        ON CI.cst_key = CA.CID 
+     LEFT JOIN silver.erp_LOC_A101 LA 
+        ON CI.cst_key = LA.CID 
+
+
+
+-- Initial Load : gold.Dim_Products 
+
+INSERT INTO gold.Dim_Products
+(
+    Product_ID ,
+    Product_Number ,
+    Product_Name ,
+    Product_Line ,
+    Category_ID ,
+    Category ,
+    Sub_Category ,
+    Maintenance ,
+    Cost ,
+    Start_date ,
+    End_date ,
+    Is_Current 
+
+)
+
+
+   SELECT 
+
+        PF.prd_id AS Product_ID ,
+        PF.prd_key AS Product_Number ,
+        PF.prd_nm AS Product_Name ,
+        PF.prd_line AS Product_Line ,
+        PF.cat_id AS Category_ID ,
+        PC.cat AS Category ,
+        PC.subcat AS Sub_Category ,
+        PC.maintenance AS Maintenance ,
+        PF.prd_cost AS Cost ,
+        PF.prd_start_dt AS Start_date ,
+        PF.prd_end_dt AS End_date ,
+
+        CASE 
+             WHEN PF.prd_end_dt IS NULL THEN 1
+             ELSE 0
+        END AS Is_Current
+
+     FROM silver.crm_prd_info  AS PF 
+     LEFT JOIN silver.erp_PX_CAT_G1V2 AS PC 
+        ON PF.cat_id = PC.id 
+
+
+
+--Initial Load : gold.Dim_DATE
+
+ DECLARE @start_date DATE = '2009-01-01'
+ DECLARE @end_date  DATE =   '2026-12-31'
+
+;With DATE_CTE AS
+(
+   SELECT @start_date AS Full_Date 
+
+UNION ALL 
+
+    SELECT DATEADD(DAY,1,Full_Date)
+    FROM DATE_CTE
+    WHERE Full_Date <= @end_date
+)
+
+    INSERT INTO gold.Dim_DATE
+    (    
+        Date_Key ,
+        Full_Date ,
+        Day_Number , 
+        Day_Name ,
+        Month_Name ,
+        Quarter_Number ,
+        Year_Number 
+     
+     )
+        SELECT 
+
+            YEAR(Full_Date) * 10000 +
+            MONTH(Full_Date) * 100 +
+            DAY(Full_Date)    AS Date_Key ,
+            Full_Date ,
+            DAY(Full_Date) AS Day_Number ,
+            DATENAME(WEEKDAY,Full_Date) AS DAY_Name ,
+            DATENAME(MONTH,Full_Date) AS Month_Name ,
+            CONCAT('Q',DATEPART(QUARTER,Full_Date) ) AS Quarter_Number ,
+            YEAR(Full_Date) AS Year_Number
+
+         FROM DATE_CTE 
+         OPTION (MAXRECURSION 0);
+
+
+
+
+-- Initial Load : gold.Fact_Sales 
+
+
+INSERT INTO gold.Fact_Sales 
+(
+    Order_Number ,
+    Product_Key ,
+    Customer_Key ,
+    Order_Date ,
+    Order_Date_Key ,
+    Ship_Date ,
+    Ship_Date_Key ,
+    Due_Date ,
+    Due_Date_Key ,
+    Quantity ,
+    Price ,
+    Revenue ,
+    Profit 
+)
+
+SELECT 
+
+    SD.sls_ord_num AS Order_Number ,
+    DP.Product_Key AS Product_Key ,
+    DC.Customer_Key AS Customer_Key ,
+    SD.sls_order_dt AS Order_Date ,
+
+    CONVERT(INT, CONVERT(VARCHAR(8), SD.sls_order_dt, 112)) AS Order_Date_Key,
+ 
+
+    SD.sls_ship_dt AS Ship_Date , 
+
+    CONVERT(INT, CONVERT(VARCHAR(8), SD.sls_ship_dt, 112)) Ship_Date_Key ,
+
+    SD.sls_due_dt AS Due_Date ,
+
+
+    CONVERT(INT, CONVERT(VARCHAR(8), SD.sls_due_dt, 112)) Due_Date_Key ,
+
+    SD.sls_quantity AS Quantity , 
+    SD.sls_price AS Price ,
+    SD.sls_sales AS Revenue , 
+
+    SD.sls_sales - (SD.sls_quantity * COALESCE(DP.Cost,0)) AS Profit 
+
+FROM silver.crm_sales_details AS SD 
+LEFT JOIN gold.Dim_Products AS DP 
+   ON SD.sls_prd_key = DP.Product_Number 
+   AND SD.sls_order_dt >= DP.Start_date
+   AND (
+          SD.sls_order_dt <= DP.End_date
+          OR 
+          DP.End_date IS NULL ) 
+LEFT JOIN gold.Dim_Customers AS DC 
+   ON SD.sls_cust_id = DC.Customer_ID 
+
+
+
+
+
+
+
+
+
 
