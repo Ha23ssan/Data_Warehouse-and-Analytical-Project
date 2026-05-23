@@ -173,7 +173,7 @@ Airflow DAGs automate:
 
 ## Airflow DAG
 
-!(Screenshots/Data Flow.jpg)
+![Screenshots](ETL_LOG Table.png)
 
 
 ## Recommended Screenshots
