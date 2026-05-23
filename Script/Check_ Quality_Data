@@ -1,0 +1,105 @@
+====================================================
+             Check_ Null_Data 
+====================================================
+
+WITH null_data AS (
+    SELECT 
+        fs.Customer_Key,
+        fs.Product_Key,
+        fs.Order_Date
+    FROM gold.Fact_Sales fs
+    LEFT JOIN gold.Dim_Customers dc 
+        ON fs.Customer_Key = dc.Customer_Key
+    LEFT JOIN gold.Dim_Products dp
+        ON fs.Product_Key = dp.Product_Key
+    WHERE dp.Product_Key IS NULL 
+       OR dc.Customer_Key IS NULL  
+       OR fs.Order_Date IS NULL
+)
+
+INSERT INTO dq_log(check_name, status, failed_rows, run_time)
+
+SELECT 
+    'null_data',
+    CASE 
+        WHEN COUNT(*) = 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END,
+    count(*),
+    GETDATE()
+FROM null_data
+
+
+====================================================
+             Check_ Duplicate_Data 
+====================================================
+
+INSERT INTO dq_log (check_name, status, failed_rows, run_time)
+SELECT
+    'duplicate_customers',
+    CASE 
+    WHEN COUNT(*) = 0 THEN 'PASS'
+    ELSE 'FAIL'
+    END,
+    COUNT(*),
+    GETDATE()
+FROM (
+    SELECT Customer_ID
+    FROM gold.Dim_Customers
+    GROUP BY Customer_ID
+    HAVING COUNT(*) > 1
+) d;
+
+
+====================================================
+             Check_ Row_Count_bronze 
+====================================================
+
+INSERT INTO dq_log(check_name, status, failed_rows, run_time)
+
+SELECT 
+   'row_count_bronze',
+    ' ',
+    count(*),
+    GETDATE()
+FROM bronze.crm_sales_details
+
+
+====================================================
+             Check_ Row_Count_silver 
+====================================================
+
+INSERT INTO dq_log(check_name, status, failed_rows, run_time)
+
+SELECT 
+    'row_count_silver',
+    ' ',
+    count(*),
+    GETDATE()
+FROM silver.crm_sales_details
+
+
+
+====================================================
+             Check_ business_rules 
+====================================================
+
+WITH bad_rows AS (
+    SELECT *
+    FROM gold.Fact_Sales
+    WHERE Revenue <= 0
+    OR Quantity < 0
+    OR Price <= 0
+    OR Order_Date > GETDATE()
+)
+INSERT INTO dq_log (check_name, status, failed_rows, run_time)
+SELECT
+    'business_rules',
+    CASE 
+        WHEN COUNT(*) = 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END,
+    COUNT(*),
+    GETDATE()
+FROM bad_rows;
+
