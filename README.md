@@ -230,7 +230,8 @@ Airflow DAGs automate:
 
 ---
 
-# 👨‍💻 Author
+## 👤 About Me
 
-Hassan AboMandour  
-Data Analyst | Aspiring Data Engineer
+I’m a Data Analyst working in the hatchery industry, with strong experience in SQL, Power BI, Excel, and Python.  
+I focus on building data-driven solutions, improving reporting systems, and developing end-to-end data warehouse pipelines.  
+I’m also expanding into AI agents and data engineering to automate insights and support smarter business decisions.
