@@ -173,22 +173,27 @@ Airflow DAGs automate:
 
 ## Screenshots
 
+### Data Flow
+![Data Flow](Screenshots/Data%20Flow.jpg)
 
 
 ### Data Model (Star Schema)
 ![Data Model](Screenshots/Data%20Model%20(Star%20Schema).png)
 
-### Data Quality LOG Table
-![Data Quality LOG Table](Screenshots/Data%20Quality%20LOG_Table.png)
+### ETL Pipeline Tasks
+![ETL Pipeline Tasks](Screenshots/ETL%20pipeline%20_Tasks.png)
+
 
 ### Data Quality Tasks
 ![Data Quality Tasks](Screenshots/Data%20Quality%20_Tasks.png)
 
-### ETL Pipeline Tasks
-![ETL Pipeline Tasks](Screenshots/ETL%20pipeline%20_Tasks.png)
 
 ### ETL Log Table
 ![ETL Log Table](Screenshots/ETL_LOG_Table.png)
+
+
+### Data Quality LOG Table
+![Data Quality LOG Table](Screenshots/Data%20Quality%20LOG_Table.png)
 
 
 ## Recommended Screenshots
