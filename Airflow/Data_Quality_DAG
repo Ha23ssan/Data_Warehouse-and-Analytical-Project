@@ -1,1 +1,49 @@
 
+from airflow import DAG
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from datetime import datetime, timedelta
+
+default_args = {
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5)
+}
+
+with DAG(
+    dag_id="data_quality_checks",
+    start_date=datetime(2026, 5, 18),
+    schedule='0 7 * * *',
+    catchup=False,
+    default_args=default_args
+) as dag:
+
+    null_check = SQLExecuteQueryOperator(
+        task_id="null_check",
+        conn_id="sql_server_dw",
+        sql='/sql/null_check.sql'
+    )
+
+    duplicate_check = SQLExecuteQueryOperator(
+        task_id="duplicate_check",
+        conn_id="sql_server_dw",
+        sql='/sql/duplicate_check.sql'
+    )
+
+    row_count_bronze = SQLExecuteQueryOperator(
+        task_id="row_count_bronze",
+        conn_id="sql_server_dw",
+        sql='/sql/row_count_bronze.sql'
+    )
+
+    row_count_silver = SQLExecuteQueryOperator(
+        task_id="row_count_silver",
+        conn_id="sql_server_dw",
+        sql='/sql/row_count_silver.sql'
+    )
+
+    business_rules = SQLExecuteQueryOperator(
+        task_id="business_rules",
+        conn_id="sql_server_dw",
+        sql='/sql/bussiness_rules.sql'
+    )
+
+    null_check >> duplicate_check >> [business_rules,row_count_bronze , row_count_silver]
