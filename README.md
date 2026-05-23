@@ -171,7 +171,9 @@ Airflow DAGs automate:
 
 # 📸 Screenshots
 
+## Airflow DAG
 
+!(Screenshots/Data Flow.jpg)
 
 
 ## Recommended Screenshots
